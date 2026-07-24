@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Indicadores — TechCell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0B1218; --panel:#121C25; --panel2:#0F1820; --border:#22323F;
+    --text:#EAF2F5; --muted:#7E93A0; --muted2:#5A6C78;
+    --teal:#2FD3C6; --amber:#F5A623; --coral:#FF6B5E; --green:#4ADE80;
+    --blue:#4FA6E8; --purple:#8B7FE8; --pink:#E85FA6; --yellow:#C9A227;
+    --mint:#6FE3B4; --orange:#E87F5F; --gray:#9AA7B0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      linear-gradient(var(--bg),var(--bg)),
+      repeating-linear-gradient(0deg, rgba(47,211,198,0.035) 0px, rgba(47,211,198,0.035) 1px, transparent 1px, transparent 42px),
+      repeating-linear-gradient(90deg, rgba(47,211,198,0.035) 0px, rgba(47,211,198,0.035) 1px, transparent 1px, transparent 42px);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    padding:32px 20px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px; margin:0 auto;}
+  header{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:36px; border-bottom:1px solid var(--border); padding-bottom:24px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.18em; color:var(--teal); text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+  .eyebrow::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--teal); box-shadow:0 0 8px var(--teal); display:inline-block;}
+  h1{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:32px; letter-spacing:-.01em;}
+  .period{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); text-align:right;}
+  .period b{color:var(--text); display:block; font-size:15px; margin-bottom:2px;}
+
+  .kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:40px;}
+  @media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+  .kpi{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px; position:relative; overflow:hidden;}
+  .kpi::before{content:''; position:absolute; top:0; left:0; width:100%; height:2px; background:linear-gradient(90deg, var(--teal), transparent);}
+  .kpi-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .kpi-label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);}
+  .led{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .led.green{background:var(--green); box-shadow:0 0 8px var(--green);}
+  .led.amber{background:var(--amber); box-shadow:0 0 8px var(--amber);}
+  .led.coral{background:var(--coral); box-shadow:0 0 8px var(--coral);}
+  .kpi-value{font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:600; letter-spacing:-.01em;}
+  .kpi-sub{font-size:12px; color:var(--muted2); margin-top:6px;}
+  .kpi-sub b{color:inherit;}
+  .up{color:var(--green);} .down{color:var(--coral);} .flat{color:var(--amber);}
+
+  section{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:24px 24px 12px; margin-bottom:20px;}
+  .sec-head{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:4px;}
+  .sec-title{font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600;}
+  .sec-note{font-size:12px; color:var(--muted); max-width:640px;}
+  .chart-box{position:relative; height:320px; margin-top:18px;}
+  .chart-box.tall{height:360px;}
+  .two-col{display:grid; grid-template-columns:1fr 1.3fr; gap:20px;}
+  @media (max-width:900px){ .two-col{grid-template-columns:1fr;} }
+
+  .legend-note{display:flex; gap:18px; flex-wrap:wrap; margin:14px 0 6px; font-size:11px; color:var(--muted);}
+  .legend-note span{display:inline-flex; align-items:center; gap:6px;}
+  .legend-note i{width:10px; height:10px; border-radius:2px; display:inline-block;}
+
+  footer{margin-top:30px; padding-top:20px; border-top:1px solid var(--border); font-size:12px; color:var(--muted2); line-height:1.7;}
+  footer b{color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow">Painel de Indicadores</div>
+      <h1>TechCell — Assistência &amp; Loja</h1>
+    </div>
+    <div class="period"><b>Ano 2026 · até julho (mês atual)</b>Vendas de smartphones e acessórios + assistência técnica</div>
+  </header>
+
+  <div class="legend-note" style="margin:0 0 24px;">
+    <span><i style="background:#2FD3C6"></i>Jan–Jul: dados reais/atuais</span>
+    <span><i style="background:rgba(47,211,198,0.35)"></i>Ago–Dez: estimativa (projeção)</span>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-top"><span class="kpi-label">Faturamento · Dez</span><span class="led green"></span></div>
+      <div class="kpi-value">R$ 48.000</div>
+      <div class="kpi-sub">Meta R$ 42.000 · <span class="up">+14,3% acima da meta</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-top"><span class="kpi-label">Saldo de Caixa · Dez</span><span class="led green"></span></div>
+      <div class="kpi-value">R$ 16.660</div>
+      <div class="kpi-sub">Meta R$ 14.500 · <span class="up">+14,9% acima da meta</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-top"><span class="kpi-label">Custo / Faturamento · Dez</span><span class="led amber"></span></div>
+      <div class="kpi-value">65,3%</div>
+      <div class="kpi-sub">Meta ≤ 65% · <span class="flat">praticamente na meta</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-top"><span class="kpi-label">Mix de Acessórios · Dez</span><span class="led green"></span></div>
+      <div class="kpi-value">89,5%</div>
+      <div class="kpi-sub">Meta ≥ 85% do mix de vendas</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">Faturamento mensal × Meta</div>
+      <div class="sec-note">Metas passam a existir a partir de julho, crescendo mês a mês conforme o plano de expansão.</div>
+    </div>
+    <div class="chart-box"><canvas id="chartFaturamento"></canvas></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">Entrada de produtos — mix de vendas</div>
+      <div class="sec-note">Percentual geral de cada produto sobre o total vendido, mês a mês e no acumulado do ano.</div>
+    </div>
+    <div class="two-col">
+      <div class="chart-box tall"><canvas id="chartMixAno"></canvas></div>
+      <div class="chart-box tall"><canvas id="chartMixMes"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">Capital de entrada × saída por mês</div>
+      <div class="sec-note">Entrada = faturamento do mês. Saída = estoque comprado + custos fixos + marketing + manutenção. A linha mostra o saldo (caixa livre) frente à meta.</div>
+    </div>
+    <div class="chart-box tall"><canvas id="chartCapital"></canvas></div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">Custos — composição e % sobre o faturamento</div>
+      <div class="sec-note">Barras empilhadas mostram de onde vem o custo; a linha tracejada é a meta de custo/faturamento, que fica mais exigente a partir de julho.</div>
+    </div>
+    <div class="chart-box tall"><canvas id="chartCustos"></canvas></div>
+  </section>
+
+  <footer>
+    <b>Metodologia:</b> os valores de faturamento e mix de produtos de <b>Janeiro</b> (R$ 22.000) e <b>Fevereiro</b> (R$ 18.000) são os informados; Março–Julho foram estimados para completar o período até o mês atual. <b>Agosto a Dezembro são projeção</b> (barras/linhas mais claras e tracejadas), seguindo uma tendência de crescimento gradual com pico em novembro/dezembro (Black Friday e Natal) — substitua por números reais conforme os meses forem fechando. Custos foram modelados como: estoque ≈ 50% do faturamento, custos fixos R$ 5.500/mês (aluguel, salários, energia, sistema), marketing ≈ 3% do faturamento e manutenção de ferramentas ≈ R$ 300–400/mês. Ajuste essas premissas para os números reais da loja assim que tiver o histórico de compras e despesas.
+  </footer>
+
+</div>
+
+<script>
+const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const revenue = [22000,18000,19800,21500,24000,26500,27800,31500,33000,37200,44500,48000];
+const metaFaturamento = [null,null,null,null,null,null,29000,31000,33500,36000,39000,42000];
+
+const products = {
+  'Película de celular':      [35,35,34,33,34,35,36,36.5,36,35,32,30],
+  'Capinhas':                  [23,25,24,23,22,22,21,20,20,21,19,18],
+  'Cabos de carregador':       [18,18,19,18,17,17.5,18,18.5,19,18.5,17,16],
+  'Chaveiros':                 [5,15,9,8,7,6,6,5.5,5,6,5,5],
+  'Fone':                      [7,8,5,6.5,7.5,7.5,7.5,8,8,8,10,10.5],
+  'Celulares':                 [5,2,3,4,4,3.5,3,3,3.5,3,6,7],
+  'Garrafas':                  [3,2,2,2,2.5,2,2,1.5,1.5,1.5,1.5,2],
+  'Luzes (gravar vídeo)':      [3,3,2,2.5,3,3,2.5,3,3,2.5,3,3.5],
+  'Caixa de som':               [2,1,1,1.5,2,2,2,2.5,2.5,3,3.5,4],
+  'Câmera':                    [0,0.5,0.5,0.5,0.5,1,1,1,1,1,2,2.5],
+  'Antena Digital':            [0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1]
+};
+const productColors = {
+  'Película de celular':'#2FD3C6','Capinhas':'#F5A623','Cabos de carregador':'#4ADE80',
+  'Chaveiros':'#FF6B5E','Fone':'#8B7FE8','Celulares':'#4FA6E8','Garrafas':'#E85FA6',
+  'Luzes (gravar vídeo)':'#C9A227','Caixa de som':'#6FE3B4','Câmera':'#E87F5F','Antena Digital':'#9AA7B0'
+};
+
+const estoque =     [11000,9000,9900,10750,12000,13250,13900,15750,16500,18600,22250,24000];
+const fixos =        Array(12).fill(5500);
+const marketing =    revenue.map(r => Math.round(r*0.03));
+const manutencao =  [300,300,300,300,300,300,300,300,300,300,400,400];
+const totalCustos = revenue.map((r,i)=> estoque[i]+fixos[i]+marketing[i]+manutencao[i]);
+const saldo = revenue.map((r,i)=> r - totalCustos[i]);
+const custoPercent = revenue.map((r,i)=> +(totalCustos[i]/r*100).toFixed(1));
+const metaSaldo =        [null,null,null,null,null,null,7000,8000,9500,11000,13000,14500];
+const metaCustoPercent = [null,null,null,null,null,null,72,71,70,68,66,65];
+
+Chart.defaults.color = '#7E93A0';
+Chart.defaults.font.family = "'Inter',sans-serif";
+Chart.defaults.borderColor = '#22323F';
+
+const REAL_MONTHS = 7; // Jan-Jul (mês atual = Julho)
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+// retorna array de cores: sólida p/ meses reais, translúcida p/ meses estimados
+function fadeFuture(hex, alpha=0.35){
+  return months.map((_,i) => i < REAL_MONTHS ? hex : hexToRgba(hex, alpha));
+}
+// dasheia o trecho da linha que entra em território de estimativa
+const fadeSegment = { borderDash: ctx => ctx.p0DataIndex >= REAL_MONTHS-1 ? [5,4] : undefined };
+
+// 1. Faturamento x Meta
+new Chart(document.getElementById('chartFaturamento'), {
+  data: {
+    labels: months,
+    datasets: [
+      {type:'bar', label:'Faturamento', data:revenue, backgroundColor:fadeFuture('#2FD3C6'), borderRadius:4, maxBarThickness:38},
+      {type:'line', label:'Meta', data:metaFaturamento, borderColor:'#F5A623', borderDash:[6,4], pointRadius:4, pointBackgroundColor:'#F5A623', tension:0, spanGaps:false}
+    ]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{labels:{usePointStyle:true}} },
+    scales:{ y:{ ticks:{ callback:v=>'R$ '+v.toLocaleString('pt-BR') }, grid:{color:'#1B2731'} }, x:{ grid:{display:false} } } }
+});
+
+// 2. Mix do ano (donut)
+const avgMix = Object.fromEntries(Object.entries(products).map(([k,v])=>[k, v.reduce((a,b)=>a+b,0)/v.length]));
+const sumAvg = Object.values(avgMix).reduce((a,b)=>a+b,0);
+const normMix = Object.fromEntries(Object.entries(avgMix).map(([k,v])=>[k, +(v/sumAvg*100).toFixed(1)]));
+new Chart(document.getElementById('chartMixAno'), {
+  type:'doughnut',
+  data:{ labels:Object.keys(normMix), datasets:[{ data:Object.values(normMix), backgroundColor:Object.keys(normMix).map(k=>productColors[k]), borderColor:'#121C25', borderWidth:2 }] },
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:10}, padding:8 } },
+      title:{ display:true, text:'Mix médio do ano', color:'#7E93A0', font:{size:11} } } }
+});
+
+// 3. Mix por mês (stacked)
+new Chart(document.getElementById('chartMixMes'), {
+  type:'bar',
+  data:{ labels:months, datasets: Object.entries(products).map(([k,v])=>({ label:k, data:v, backgroundColor:fadeFuture(productColors[k]), maxBarThickness:34 })) },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:9}, padding:6 } } },
+    scales:{ x:{ stacked:true, grid:{display:false} }, y:{ stacked:true, max:100, ticks:{ callback:v=>v+'%' }, grid:{color:'#1B2731'} } } }
+});
+
+// 4. Capital entrada x saída + saldo
+new Chart(document.getElementById('chartCapital'), {
+  data:{ labels:months, datasets:[
+    {type:'bar', label:'Entrada (faturamento)', data:revenue, backgroundColor:fadeFuture('#2FD3C6'), maxBarThickness:26},
+    {type:'bar', label:'Saída (custos)', data:totalCustos, backgroundColor:fadeFuture('#FF6B5E'), maxBarThickness:26},
+    {type:'line', label:'Saldo', data:saldo, borderColor:'#4ADE80', backgroundColor:'#4ADE80', pointRadius:3, tension:.3, yAxisID:'y', segment:fadeSegment},
+    {type:'line', label:'Meta de saldo', data:metaSaldo, borderColor:'#F5A623', borderDash:[6,4], pointRadius:3, pointBackgroundColor:'#F5A623', tension:0}
+  ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'bottom', labels:{usePointStyle:true} } },
+    scales:{ y:{ ticks:{ callback:v=>'R$ '+v.toLocaleString('pt-BR') }, grid:{color:'#1B2731'} }, x:{ grid:{display:false} } } }
+});
+
+// 5. Custos empilhados + % sobre faturamento
+new Chart(document.getElementById('chartCustos'), {
+  data:{ labels:months, datasets:[
+    {type:'bar', label:'Estoque', data:estoque, backgroundColor:fadeFuture('#2FD3C6'), stack:'c', maxBarThickness:30},
+    {type:'bar', label:'Fixos (aluguel, salário, energia)', data:fixos, backgroundColor:fadeFuture('#4FA6E8'), stack:'c', maxBarThickness:30},
+    {type:'bar', label:'Marketing', data:marketing, backgroundColor:fadeFuture('#F5A623'), stack:'c', maxBarThickness:30},
+    {type:'bar', label:'Manutenção/ferramentas', data:manutencao, backgroundColor:fadeFuture('#8B7FE8'), stack:'c', maxBarThickness:30},
+    {type:'line', label:'% custo / faturamento', data:custoPercent, borderColor:'#FF6B5E', pointRadius:3, tension:.3, yAxisID:'y1', segment:fadeSegment},
+    {type:'line', label:'Meta % custo', data:metaCustoPercent, borderColor:'#4ADE80', borderDash:[6,4], pointRadius:3, pointBackgroundColor:'#4ADE80', tension:0, yAxisID:'y1'}
+  ]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:10}, usePointStyle:true } } },
+    scales:{
+      y:{ stacked:true, position:'left', ticks:{ callback:v=>'R$ '+v.toLocaleString('pt-BR') }, grid:{color:'#1B2731'} },
+      y1:{ position:'right', min:0, max:100, ticks:{ callback:v=>v+'%' }, grid:{display:false} },
+      x:{ stacked:true, grid:{display:false} }
+    } }
+});
+</script>
+</body>
+</html>
